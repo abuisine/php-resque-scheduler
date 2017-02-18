@@ -22,7 +22,12 @@ class ResqueScheduler_Worker
 	 * @var int Interval to sleep for between checking schedules.
 	 */
 	protected $interval = 5;
-	
+
+	/**
+	 * @var boolean True if on the next iteration, the worker should shutdown.
+	 */
+	private $shutdown = false;
+
 	/**
 	* The primary loop for a worker.
 	*
@@ -36,13 +41,18 @@ class ResqueScheduler_Worker
 		if ($interval !== null) {
 			$this->interval = $interval;
 		}
+		
+		$this->registerSigHandlers();
 
 		$this->updateProcLine('Starting');
 		
-		while (true) {
+		while (!$this->shutdown) {
 			$this->handleDelayedItems();
 			$this->sleep();
 		}
+
+		$this->updateProcLine('Stopped');
+
 	}
 	
 	/**
@@ -94,6 +104,40 @@ class ResqueScheduler_Worker
 		sleep($this->interval);
 	}
 	
+	/**
+	 * Register signal handlers that a worker should respond to.
+	 *
+	 * TERM: Shutdown immediately and stop processing jobs.
+	 * INT: Shutdown immediately and stop processing jobs.
+	 * QUIT: Shutdown after the current job finishes processing.
+	 * USR1: Kill the forked child immediately and continue processing jobs.
+	 */
+	private function registerSigHandlers()
+	{
+		if(!function_exists('pcntl_signal')) {
+			return;
+		}
+
+		declare(ticks = 1);
+		// pcntl_signal(SIGTERM, array($this, 'shutDownNow'));
+		// pcntl_signal(SIGINT, array($this, 'shutDownNow'));
+		pcntl_signal(SIGQUIT, array($this, 'shutdown'));
+		// pcntl_signal(SIGUSR1, array($this, 'killChild'));
+		// pcntl_signal(SIGUSR2, array($this, 'pauseProcessing'));
+		// pcntl_signal(SIGCONT, array($this, 'unPauseProcessing'));
+		$this->log('Registered signals');
+	}
+
+	/**
+	 * Schedule a worker for shutdown. Will finish processing the current job
+	 * and when the timeout interval is reached, the worker will shut down.
+	 */
+	public function shutdown()
+	{
+		$this->shutdown = true;
+		$this->log('Shutting down');
+	}
+
 	/**
 	 * Update the status of the current worker process.
 	 *
