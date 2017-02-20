@@ -104,21 +104,27 @@ class ResqueScheduler
      * @param $queue
      * @param $class
      * @param $args
-     * @return int number of jobs that were removed
+     * @return mixed numbers of element destroyed and impacted timestamps
      */
     public static function removeDelayed($queue, $class, $args)
     {
-       $destroyed=0;
-       $item=json_encode(self::jobToHash($queue, $class, $args));
-       $redis=Resque::redis();
+    	$destroyed=0;
+    	$timestamps=[];
+    	$item=json_encode(self::jobToHash($queue, $class, $args));
+    	$redis=Resque::redis();
 
-       foreach($redis->keys('delayed:*') as $key)
-       {
-           $key=$redis->removePrefix($key);
-           $destroyed+=$redis->lrem($key,0,$item);
-       }
+    	foreach($redis->keys('delayed:*') as $key)
+    	{
+        	$key=$redis->removePrefix($key);
+        	if ( $count=$redis->lrem($key,0,$item) )
+           		$timestamps[]=intval(explode(':',$key,2)[1]);
+        	$destroyed+=$count;
+    	}
 
-       return $destroyed;
+    	return array(
+    		'destroyed'	=> $destroyed,
+    		'timestamps'	=> $timestamps
+    	);
     }
 
     /**
