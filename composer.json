@@ -7,17 +7,19 @@
 		{
 			"name": "Chris Boulton",
 			"email": "chris@bgigcommerce.com"
+		},
+		{
+			"name": "Jérémie BORDIER",
+			"email": "jeremie.bordier@gmail.com"
+		},
+		{
+			"name": "Alexandre Buisine",
+			"email": "alexandrejabuisine@gmail.com"
 		}
 	],
 	"autoload": {
 		"psr-0": {
 			"ResqueScheduler": "lib/"
 		}
-	},
-	"repositories": [
-		{ "type": "git", "url": "https://github.com/ahfeel/php-resque" }
-	],
-	"require": {
-		"ahfeel/php-resque": "dev-master"
 	}
 }
